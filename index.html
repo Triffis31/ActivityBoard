@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Activity Board">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#020617">
+    <title>Activity Board</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        .pulse-save {
+            animation: pulseSave 1.8s infinite;
+        }
+        @keyframes pulseSave {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55); }
+            50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+        }
+        .safe-bottom {
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200 selection:bg-blue-500/30">
+
+    <!-- Main App Container -->
+    <div class="max-w-3xl mx-auto px-3.5 sm:px-5 pt-3 sm:pt-6 pb-28 sm:pb-8 flex flex-col min-h-screen">
+
+        <!-- Sleek Compact Header Bar -->
+        <header class="sticky top-0 z-30 -mx-3.5 sm:mx-0 px-3.5 sm:px-0 py-2.5 sm:py-0 mb-3.5 sm:mb-5 bg-slate-100/90 dark:bg-slate-950/90 backdrop-blur-md sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-b border-slate-200/70 dark:border-slate-800/70 sm:border-0 flex items-center justify-between gap-2">
+            <!-- Brand & Live Sync Indicator -->
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-extrabold text-base sm:text-lg">
+                    A
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-base sm:text-2xl font-extrabold tracking-tight leading-none truncate">Activity Board</h1>
+                    <div id="sync-status" class="flex items-center gap-1.5 mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        <span id="sync-dot" class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                        <span id="sync-text" class="truncate">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Controls: Profile Switcher + CSV + Theme -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div id="user-toggle" class="grid grid-cols-2 bg-slate-200/80 dark:bg-slate-900 p-0.5 rounded-full border border-slate-300/70 dark:border-slate-800">
+                    <button data-user="Jon" onclick="setUser('Jon')"
+                        class="user-btn px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold transition bg-blue-600 text-white shadow-sm">
+                        Jon
+                    </button>
+                    <button data-user="Val" onclick="setUser('Val')"
+                        class="user-btn px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                        Val
+                    </button>
+                </div>
+
+                <button id="btn-export-csv" onclick="exportCSV()"
+                    class="inline-flex items-center justify-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition shadow-sm"
+                    title="Export Checklist to CSV for Google Sheets" aria-label="Export CSV">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <span class="hidden sm:inline">Export CSV</span>
+                </button>
+
+                <button id="btn-theme-toggle" onclick="toggleTheme()"
+                    class="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition shadow-sm"
+                    title="Toggle Dark / Light Mode" aria-label="Toggle Theme">
+                    <svg id="icon-sun" class="w-4 h-4 hidden dark:block text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg id="icon-moon" class="w-4 h-4 block dark:hidden text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Desktop Navigation Pills (Hidden on mobile; replaced by native bottom tab bar) -->
+        <div class="hidden sm:flex items-center justify-center mb-5">
+            <nav id="main-nav" class="grid grid-cols-3 bg-slate-200/80 dark:bg-slate-900 p-1 rounded-full border border-slate-300/60 dark:border-slate-800">
+                <button data-view="tracking" onclick="switchView('tracking')"
+                    class="nav-btn px-7 py-2 rounded-full text-sm font-semibold transition bg-blue-600 text-white shadow-sm">
+                    Tracking
+                </button>
+                <button data-view="totals" onclick="switchView('totals')"
+                    class="nav-btn px-7 py-2 rounded-full text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    Totals
+                </button>
+                <button data-view="calendar" onclick="switchView('calendar')"
+                    class="nav-btn px-7 py-2 rounded-full text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                    Calendar
+                </button>
+            </nav>
+        </div>
+
+        <!-- Unsaved Changes Banner (Floating above bottom nav on mobile, inline on desktop) -->
+        <div id="unsaved-banner" class="hidden fixed sm:static bottom-[4.5rem] left-3 right-3 sm:inset-auto z-40 sm:mb-4 p-3 rounded-2xl sm:rounded-xl bg-slate-900/95 dark:bg-blue-950/95 sm:bg-blue-500/10 sm:dark:bg-blue-500/10 border border-blue-500/50 sm:border-blue-500/30 shadow-2xl sm:shadow-none backdrop-blur-md flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white sm:text-blue-600 sm:dark:text-blue-300 pl-1">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0"></span>
+                <span id="unsaved-count-text">You have unsaved edits</span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button onclick="discardAllDrafts()" class="px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-lg text-xs font-semibold text-slate-300 sm:text-slate-600 sm:dark:text-slate-300 hover:bg-white/10 sm:hover:bg-slate-200/60 transition">
+                    Discard
+                </button>
+                <button onclick="saveAllUnsaved()" class="px-4 py-2 sm:py-1.5 rounded-xl sm:rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md active:scale-95 transition">
+                    Save All
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="flex-1">
+
+            <!-- ==================== VIEW 1: TRACKING ==================== -->
+            <section id="view-tracking" class="space-y-3.5 sm:space-y-4">
+                <!-- Interactive Weekly Calendar Strip & Week Switcher -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-sm">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <button onclick="changeTrackingWeek(-1)"
+                            class="w-10 h-10 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xl active:scale-95 transition"
+                            aria-label="Previous Week">
+                            &#8249;
+                        </button>
+                        <div class="text-center">
+                            <div id="tracking-week-label" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                                Loading week...
+                            </div>
+                            <button id="btn-jump-current-week" onclick="jumpToCurrentWeek()"
+                                class="hidden mt-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                                Jump to Current Week
+                            </button>
+                        </div>
+                        <button onclick="changeTrackingWeek(1)"
+                            class="w-10 h-10 sm:w-9 sm:h-9 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xl active:scale-95 transition"
+                            aria-label="Next Week">
+                            &#8250;
+                        </button>
+                    </div>
+                    <!-- 7-Day Mini Summary Strip -->
+                    <div id="tracking-week-strip" class="grid grid-cols-7 gap-1 sm:gap-1.5"></div>
+                </div>
+
+                <!-- Mobile Card List (Shown on small screens) -->
+                <div id="tracking-cards-mobile" class="sm:hidden space-y-2.5">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                        Loading shared tracker...
+                    </div>
+                </div>
+
+                <!-- Desktop Table (Shown on sm+ screens) -->
+                <div class="hidden sm:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                                    <th class="py-3.5 pl-5 pr-3">Day</th>
+                                    <th class="py-3.5 px-3 text-center">Activity</th>
+                                    <th class="py-3.5 px-3 text-center">Healthy Eating</th>
+                                    <th class="py-3.5 px-3 text-center">Alcohol</th>
+                                    <th class="py-3.5 pl-3 pr-5 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tracking-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/80">
+                                <tr>
+                                    <td colspan="5" class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+                                        Loading shared tracker...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== VIEW 2: TOTALS ==================== -->
+            <section id="view-totals" class="hidden space-y-3.5 sm:space-y-4">
+                <!-- Weekly Averages Summary Card -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            Weekly Averages (<span id="totals-user-label">Jon</span>)
+                        </h2>
+                        <span id="totals-days-note" class="text-[11px] font-medium text-slate-400 dark:text-slate-500"></span>
+                    </div>
+                    <div id="totals-averages" class="grid grid-cols-3 gap-2.5 sm:gap-3"></div>
+                </div>
+
+                <!-- Weekly Breakdown Table -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 text-[11px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400">
+                                    <th class="py-3.5 pl-4 sm:pl-5 pr-2">Week</th>
+                                    <th class="py-3.5 px-2 text-center">Activity</th>
+                                    <th class="py-3.5 px-2 text-center">Healthy<br class="sm:hidden"> Eating</th>
+                                    <th class="py-3.5 pl-2 pr-4 sm:pr-5 text-center">Alcohol</th>
+                                </tr>
+                            </thead>
+                            <tbody id="totals-body" class="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs sm:text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== VIEW 3: CALENDAR ==================== -->
+            <section id="view-calendar" class="hidden space-y-3.5 sm:space-y-4">
+                <!-- Metric Multi-Select Filters & Mode Toggle -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button id="filter-Activity" onclick="toggleCalendarMetric('Activity')"
+                                class="px-3 py-1.5 rounded-full text-xs font-bold border transition bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400">
+                                X &middot; Activity
+                            </button>
+                            <button id="filter-Healthy" onclick="toggleCalendarMetric('Healthy Eating')"
+                                class="px-3 py-1.5 rounded-full text-xs font-bold border transition bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                                E &middot; Eating
+                            </button>
+                            <button id="filter-Alcohol" onclick="toggleCalendarMetric('Alcohol')"
+                                class="px-3 py-1.5 rounded-full text-xs font-bold border transition bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400">
+                                A &middot; Alcohol
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 bg-slate-100 dark:bg-slate-950 p-0.5 rounded-full border border-slate-200 dark:border-slate-800">
+                            <button id="cal-mode-month" onclick="setCalendarMode('month')"
+                                class="px-3 py-1 rounded-full text-xs font-bold transition bg-blue-600 text-white">
+                                Month
+                            </button>
+                            <button id="cal-mode-week" onclick="setCalendarMode('week')"
+                                class="px-3 py-1 rounded-full text-xs font-bold transition text-slate-500 dark:text-slate-400">
+                                Week
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Period Navigator -->
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                        <button onclick="changeCalendarPeriod(-1)"
+                            class="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-lg active:scale-95 transition"
+                            aria-label="Previous Period">
+                            &#8249;
+                        </button>
+                        <div class="text-center">
+                            <div id="calendar-period-title" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white"></div>
+                            <button onclick="jumpCalendarToday()" class="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+                                Today
+                            </button>
+                        </div>
+                        <button onclick="changeCalendarPeriod(1)"
+                            class="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-lg active:scale-95 transition"
+                            aria-label="Next Period">
+                            &#8250;
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 shadow-sm">
+                    <div class="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                        <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+                    </div>
+                    <div id="calendar-grid-body" class="grid grid-cols-7 gap-1 sm:gap-2"></div>
+
+                    <!-- Legend -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                        <span class="inline-flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-blue-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">X</span> Activity</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-emerald-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">E</span> Healthy Eating</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-amber-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">A</span> 1 Drink</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-rose-500 text-white text-[10px] font-extrabold inline-flex items-center justify-center">A+</span> 1+ Drinks</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Native Mobile Bottom Tab Bar (Shown only on small screens) -->
+    <nav id="mobile-bottom-nav" class="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 safe-bottom">
+        <div class="grid grid-cols-3 h-14 max-w-md mx-auto">
+            <button data-view="tracking" onclick="switchView('tracking')"
+                class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-[10px] font-bold">Tracking</span>
+            </button>
+            <button data-view="totals" onclick="switchView('totals')"
+                class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+                <span class="text-[10px] font-bold">Totals</span>
+            </button>
+            <button data-view="calendar" onclick="switchView('calendar')"
+                class="mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-[10px] font-bold">Calendar</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Unsaved Changes Modal -->
+    <div id="unsaved-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Unsaved Changes</h3>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    You have unsaved edits on this week. Would you like to save them before leaving?
+                </p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2 justify-end">
+                <button onclick="resolveUnsavedModal('cancel')"
+                    class="px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    Stay Here
+                </button>
+                <button onclick="resolveUnsavedModal('discard')"
+                    class="px-4 py-2.5 sm:py-2 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 hover:bg-rose-500/25 transition">
+                    Discard
+                </button>
+                <button onclick="resolveUnsavedModal('save')"
+                    class="px-4 py-2.5 sm:py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition">
+                    Save &amp; Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="pointer-events-none fixed top-16 sm:top-auto sm:bottom-6 left-1/2 -translate-x-1/2 z-50 opacity-0 transition-opacity duration-200">
+        <div id="toast-inner" class="px-4 py-2.5 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold shadow-xl whitespace-nowrap"></div>
+    </div>
+
+    <!-- Firebase Modular SDK & Application Logic -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // ==================== FIREBASE CONFIGURATION ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk4_Bgfc7ubmzyQ74Km98Mf51KEnV5QUs",
+            authDomain: "activity-board-97e62.firebaseapp.com",
+            projectId: "activity-board-97e62",
+            storageBucket: "activity-board-97e62.firebasestorage.app",
+            messagingSenderId: "576719561468",
+            appId: "1:576719561468:web:8f1b50d4bf2605ba776d79"
+        };
+
+        const APP_ID = 'activity-board';
+
+        // ==================== HISTORICAL DATA (FROM ActivityBoard_DB) ====================
+        const HISTORICAL_WEEKLY_TOTALS = [
+            { week: "8/31/26 - 9/6/26", name: "Jon", activity: 6, healthy: 5, alcohol: 3 },
+            { week: "9/7/26 - 9/13/26", name: "Jon", activity: 5, healthy: 4, alcohol: 2 },
+            { week: "9/14/26 - 9/20/26", name: "Jon", activity: 2, healthy: 3, alcohol: 5 },
+            { week: "9/21/26 - 9/27/26", name: "Jon", activity: 5, healthy: 4, alcohol: 3 },
+            { week: "9/28/26 - 10/4/26", name: "Jon", activity: 4, healthy: 3, alcohol: 2 },
+            { week: "10/5/26 - 10/11/26", name: "Jon", activity: 4, healthy: 5, alcohol: 1 },
+            { week: "10/12/26 - 10/18/26", name: "Jon", activity: 5, healthy: 4, alcohol: 2 },
+            { week: "10/19/26 - 10/25/26", name: "Jon", activity: 4, healthy: 5, alcohol: 2 },
+            { week: "8/31/26 - 9/6/26", name: "Val", activity: 6, healthy: 6, alcohol: 1 },
+            { week: "9/7/26 - 9/13/26", name: "Val", activity: 5, healthy: 5, alcohol: 2 },
+            { week: "9/14/26 - 9/20/26", name: "Val", activity: 6, healthy: 6, alcohol: 1 },
+            { week: "9/21/26 - 9/27/26", name: "Val", activity: 6, healthy: 6, alcohol: 2 },
+            { week: "9/28/26 - 10/4/26", name: "Val", activity: 5, healthy: 5, alcohol: 3 },
+            { week: "10/5/26 - 10/11/26", name: "Val", activity: 6, healthy: 5, alcohol: 1 },
+            { week: "10/12/26 - 10/18/26", name: "Val", activity: 6, healthy: 4, alcohol: 2 },
+            { week: "10/19/26 - 10/25/26", name: "Val", activity: 5, healthy: 5, alcohol: 2 }
+        ];
+
+        const SEED_CHECKLIST_ROWS = [
+            { date: "10/27/26", name: "Jon", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/26/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/26/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/27/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/28/26", name: "Jon", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/28/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/29/26", name: "Jon", activity: true, healthy: false, alcohol: "1+", status: "Logged" },
+            { date: "10/29/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "10/30/26", name: "Jon", activity: true, healthy: false, alcohol: "1+", status: "Logged" },
+            { date: "10/31/26", name: "Jon", activity: true, healthy: false, alcohol: "1", status: "Logged" },
+            { date: "11/1/26", name: "Jon", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/2/26", name: "Jon", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/1/26", name: "Val", activity: true, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "10/31/26", name: "Val", activity: true, healthy: false, alcohol: "1", status: "Logged" },
+            { date: "10/30/26", name: "Val", activity: false, healthy: false, alcohol: "1+", status: "Logged" },
+            { date: "11/3/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/4/26", name: "Jon", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/5/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/2/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/3/26", name: "Val", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/4/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/5/26", name: "Val", activity: true, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/6/26", name: "Val", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/6/26", name: "Jon", activity: false, healthy: true, alcohol: "1+", status: "Logged" },
+            { date: "11/7/26", name: "Jon", activity: true, healthy: false, alcohol: "1+", status: "Logged" },
+            { date: "11/8/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/10/26", name: "Jon", activity: false, healthy: false, alcohol: "1+", status: "Logged" },
+            { date: "11/9/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/11/26", name: "Jon", activity: false, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/12/26", name: "Jon", activity: false, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/9/26", name: "Val", activity: true, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/10/26", name: "Val", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/11/26", name: "Val", activity: true, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/12/26", name: "Val", activity: true, healthy: true, alcohol: "1+", status: "Logged" },
+            { date: "11/13/26", name: "Val", activity: false, healthy: true, alcohol: "1+", status: "Logged" },
+            { date: "11/14/26", name: "Val", activity: true, healthy: false, alcohol: null, status: "Partial" },
+            { date: "11/13/26", name: "Jon", activity: false, healthy: true, alcohol: "1+", status: "Logged" },
+            { date: "11/14/26", name: "Jon", activity: false, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/15/26", name: "Jon", activity: true, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/16/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" },
+            { date: "11/17/26", name: "Jon", activity: true, healthy: false, alcohol: "0", status: "Logged" },
+            { date: "11/18/26", name: "Jon", activity: false, healthy: true, alcohol: "0", status: "Logged" }
+        ];
+
+        // ==================== DATE HELPERS ====================
+        function parseShortDate(str) {
+            const [m, d, y] = str.split('/').map(Number);
+            const fullYear = y < 100 ? 2000 + y : y;
+            return new Date(fullYear, m - 1, d);
+        }
+
+        function formatShortDate(dateObj) {
+            return `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${String(dateObj.getFullYear()).slice(-2)}`;
+        }
+
+        function formatISODate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseISODate(iso) {
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function getMondayOfWeek(dateObj) {
+            const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            const day = d.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + diff);
+            return d;
+        }
+
+        function addDays(dateObj, days) {
+            const d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+            d.setDate(d.getDate() + days);
+            return d;
+        }
+
+        function getWeekRangeLabel(mondayDate) {
+            const sunday = addDays(mondayDate, 6);
+            return `${formatShortDate(mondayDate)} - ${formatShortDate(sunday)}`;
+        }
+
+        function getDocId(isoDate, userName) {
+            return `${isoDate}_${userName}`;
+        }
+
+        function isTodayISO(isoDate) {
+            return isoDate === formatISODate(new Date());
+        }
+
+        // ==================== APPLICATION STATE ====================
+        const savedUser = localStorage.getItem('activityBoardUser');
+        let currentUser = (savedUser === 'Val' || savedUser === 'Jon') ? savedUser : 'Jon';
+        let currentView = 'tracking';
+        let trackingWeekMonday = getMondayOfWeek(new Date());
+        let calendarMode = 'month';
+        let calendarCursor = new Date();
+        let calMetrics = { Activity: true, 'Healthy Eating': true, Alcohol: true };
+
+        let checklistDB = {};      // Live Firestore data keyed by `${isoDate}_${name}`
+        let draftDB = {};          // Unsaved local edits keyed by `${isoDate}_${name}`
+        let unsavedKeys = new Set();
+        let pendingNavCallback = null;
+        let toastTimer = null;
+
+        let db = null;
+        let checklistColRef = null;
+
+        // ==================== THEME & PROFILE INIT ====================
+        function initPreferences() {
+            const savedTheme = localStorage.getItem('activityBoardTheme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#f1f5f9');
+            } else {
+                document.documentElement.classList.add('dark');
+                document.querySelector('meta[name="theme-color"]').setAttribute('content', '#020617');
+            }
+            updateUserToggleUI();
+        }
+
+        function updateUserToggleUI() {
+            document.querySelectorAll('.user-btn').forEach(btn => {
+                const active = btn.dataset.user === currentUser;
+                btn.className = active
+                    ? 'user-btn px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold transition bg-blue-600 text-white shadow-sm'
+                    : 'user-btn px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-bold transition text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+            });
+        }
+
+        window.toggleTheme = function() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('activityBoardTheme', isDark ? 'dark' : 'light');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', isDark ? '#020617' : '#f1f5f9');
+        };
+
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            const inner = document.getElementById('toast-inner');
+            inner.textContent = msg;
+            el.classList.remove('opacity-0');
+            el.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                el.classList.remove('opacity-100');
+                el.classList.add('opacity-0');
+            }, 2200);
+        }
+
+        function setSyncIndicator(state, text) {
+            const dot = document.getElementById('sync-dot');
+            const label = document.getElementById('sync-text');
+            label.textContent = text;
+            dot.className = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 ';
+            if (state === 'live') dot.className += 'bg-emerald-500';
+            else if (state === 'syncing') dot.className += 'bg-amber-400 animate-pulse';
+            else dot.className += 'bg-rose-500';
+        }
+
+        // ==================== RECORD HELPERS ====================
+        function emptyRecord(isoDate, name) {
+            return {
+                isoDate,
+                date: formatShortDate(parseISODate(isoDate)),
+                name,
+                activity: null,
+                healthy: null,
+                alcohol: null,
+                status: 'Blank'
+            };
+        }
+
+        function computeStatus(rec) {
+            const filled = [rec.activity, rec.healthy, rec.alcohol].filter(v => v !== null && v !== undefined && v !== '').length;
+            if (filled === 0) return 'Blank';
+            if (filled === 3) return 'Logged';
+            return 'Partial';
+        }
+
+        function getEffectiveRecord(isoDate, name) {
+            const key = getDocId(isoDate, name);
+            if (draftDB[key]) return draftDB[key];
+            if (checklistDB[key]) return checklistDB[key];
+            return emptyRecord(isoDate, name);
+        }
+
+        function recordsEqual(a, b) {
+            return a.activity === b.activity && a.healthy === b.healthy && a.alcohol === b.alcohol;
+        }
+
+        function updateUnsavedBanner() {
+            const banner = document.getElementById('unsaved-banner');
+            const text = document.getElementById('unsaved-count-text');
+            if (unsavedKeys.size > 0) {
+                banner.classList.remove('hidden');
+                text.textContent = `${unsavedKeys.size} unsaved ${unsavedKeys.size === 1 ? 'day' : 'days'}`;
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        // ==================== FIRESTORE INITIALIZATION & SEEDING ====================
+        async function initFirebase() {
+            try {
+                setSyncIndicator('syncing', 'Connecting...');
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                db = getFirestore(app);
+                checklistColRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'checklist');
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) return;
+                    try {
+                        await seedHistoricalDataIfEmpty();
+                        subscribeToChecklist();
+                    } catch (err) {
+                        console.error('Firestore access error:', err);
+                        setSyncIndicator('error', 'Check Firestore Rules');
+                    }
+                });
+
+                await signInAnonymously(auth);
+            } catch (err) {
+                console.error('Firebase init error:', err);
+                setSyncIndicator('error', 'Enable Anonymous Auth');
+            }
+        }
+
+        async function seedHistoricalDataIfEmpty() {
+            setSyncIndicator('syncing', 'Checking history...');
+            const snapshot = await getDocs(checklistColRef);
+            if (!snapshot.empty) return;
+
+            setSyncIndicator('syncing', 'Seeding 42 records...');
+            const batch = writeBatch(db);
+            SEED_CHECKLIST_ROWS.forEach(row => {
+                const d = parseShortDate(row.date);
+                const isoDate = formatISODate(d);
+                const docId = getDocId(isoDate, row.name);
+                const ref = doc(checklistColRef, docId);
+                batch.set(ref, {
+                    isoDate,
+                    date: row.date,
+                    name: row.name,
+                    activity: row.activity,
+                    healthy: row.healthy,
+                    alcohol: row.alcohol,
+                    status: row.status
+                });
+            });
+            await batch.commit();
+            showToast('Historical data loaded into Firestore');
+        }
+
+        function subscribeToChecklist() {
+            onSnapshot(checklistColRef, (snapshot) => {
+                const nextDB = {};
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (!data || !data.isoDate || !data.name) return;
+                    const key = getDocId(data.isoDate, data.name);
+                    nextDB[key] = {
+                        isoDate: data.isoDate,
+                        date: data.date || formatShortDate(parseISODate(data.isoDate)),
+                        name: data.name,
+                        activity: data.activity === undefined ? null : data.activity,
+                        healthy: data.healthy === undefined ? null : data.healthy,
+                        alcohol: data.alcohol === undefined ? null : data.alcohol,
+                        status: data.status || computeStatus(data)
+                    };
+                });
+                checklistDB = nextDB;
+                setSyncIndicator('live', 'Live Sync');
+                refreshAllViews();
+            }, (err) => {
+                console.error('Snapshot error:', err);
+                setSyncIndicator('error', 'Sync paused');
+            });
+        }
+
+        // ==================== SAFE NAVIGATION & UNSAVED GUARD ====================
+        function safeNavigate(callback) {
+            if (unsavedKeys.size > 0) {
+                pendingNavCallback = callback;
+                document.getElementById('unsaved-modal').classList.remove('hidden');
+            } else {
+                callback();
+            }
+        }
+
+        window.resolveUnsavedModal = async function(action) {
+            const modal = document.getElementById('unsaved-modal');
+            modal.classList.add('hidden');
+            const cb = pendingNavCallback;
+            pendingNavCallback = null;
+
+            if (action === 'cancel') return;
+            if (action === 'discard') {
+                draftDB = {};
+                unsavedKeys.clear();
+                updateUnsavedBanner();
+                if (cb) cb();
+                return;
+            }
+            if (action === 'save') {
+                await window.saveAllUnsaved();
+                if (cb) cb();
+            }
+        };
+
+        window.switchView = function(view) {
+            if (view === currentView) return;
+            safeNavigate(() => {
+                currentView = view;
+                ['tracking', 'totals', 'calendar'].forEach(v => {
+                    document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+                });
+                // Update Desktop Nav
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    const active = btn.dataset.view === view;
+                    btn.className = active
+                        ? 'nav-btn px-7 py-2 rounded-full text-sm font-semibold transition bg-blue-600 text-white shadow-sm'
+                        : 'nav-btn px-7 py-2 rounded-full text-sm font-semibold transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+                });
+                // Update Mobile Bottom Nav
+                document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+                    const active = btn.dataset.view === view;
+                    btn.className = active
+                        ? 'mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-blue-600 dark:text-blue-400 transition'
+                        : 'mobile-nav-btn flex flex-col items-center justify-center gap-0.5 text-slate-400 dark:text-slate-500 transition';
+                });
+                window.scrollTo({ top: 0, behavior: 'instant' });
+                refreshAllViews();
+            });
+        };
+
+        window.setUser = function(name) {
+            if (name === currentUser) return;
+            safeNavigate(() => {
+                currentUser = name;
+                localStorage.setItem('activityBoardUser', name);
+                updateUserToggleUI();
+                refreshAllViews();
+            });
+        };
+
+        // ==================== TRACKING VIEW LOGIC ====================
+        window.changeTrackingWeek = function(deltaWeeks) {
+            safeNavigate(() => {
+                trackingWeekMonday = addDays(trackingWeekMonday, deltaWeeks * 7);
+                renderTracking();
+            });
+        };
+
+        window.jumpToCurrentWeek = function() {
+            safeNavigate(() => {
+                trackingWeekMonday = getMondayOfWeek(new Date());
+                renderTracking();
+            });
+        };
+
+        window.setMetric = function(isoDate, field, value) {
+            const key = getDocId(isoDate, currentUser);
+            const base = draftDB[key]
+                ? { ...draftDB[key] }
+                : (checklistDB[key] ? { ...checklistDB[key] } : emptyRecord(isoDate, currentUser));
+
+            // Tap active option again to clear back to null
+            base[field] = base[field] === value ? null : value;
+            base.status = computeStatus(base);
+
+            const original = checklistDB[key] || emptyRecord(isoDate, currentUser);
+            if (recordsEqual(base, original)) {
+                delete draftDB[key];
+                unsavedKeys.delete(key);
+            } else {
+                draftDB[key] = base;
+                unsavedKeys.add(key);
+            }
+
+            updateUnsavedBanner();
+            renderTracking();
+        };
+
+        window.saveRow = async function(isoDate) {
+            const key = getDocId(isoDate, currentUser);
+            const rec = draftDB[key];
+            if (!rec || !checklistColRef) return;
+
+            try {
+                setSyncIndicator('syncing', 'Saving...');
+                await setDoc(doc(checklistColRef, key), {
+                    isoDate: rec.isoDate,
+                    date: rec.date,
+                    name: rec.name,
+                    activity: rec.activity,
+                    healthy: rec.healthy,
+                    alcohol: rec.alcohol,
+                    status: rec.status
+                });
+                delete draftDB[key];
+                unsavedKeys.delete(key);
+                updateUnsavedBanner();
+                setSyncIndicator('live', 'Live Sync');
+                showToast(`Saved ${rec.date} (${rec.name})`);
+                renderTracking();
+            } catch (err) {
+                console.error('Save failed:', err);
+                setSyncIndicator('error', 'Save failed');
+                showToast('Could not save. Check connection.');
+            }
+        };
+
+        window.saveAllUnsaved = async function() {
+            if (unsavedKeys.size === 0 || !checklistColRef) return;
+            try {
+                setSyncIndicator('syncing', 'Saving all...');
+                const batch = writeBatch(db);
+                const count = unsavedKeys.size;
+                unsavedKeys.forEach(key => {
+                    const rec = draftDB[key];
+                    if (!rec) return;
+                    batch.set(doc(checklistColRef, key), {
+                        isoDate: rec.isoDate,
+                        date: rec.date,
+                        name: rec.name,
+                        activity: rec.activity,
+                        healthy: rec.healthy,
+                        alcohol: rec.alcohol,
+                        status: rec.status
+                    });
+                });
+                await batch.commit();
+                draftDB = {};
+                unsavedKeys.clear();
+                updateUnsavedBanner();
+                setSyncIndicator('live', 'Live Sync');
+                showToast(`Saved ${count} ${count === 1 ? 'day' : 'days'}`);
+                refreshAllViews();
+            } catch (err) {
+                console.error('Batch save failed:', err);
+                setSyncIndicator('error', 'Save failed');
+                showToast('Save failed. Please try again.');
+            }
+        };
+
+        window.discardAllDrafts = function() {
+            draftDB = {};
+            unsavedKeys.clear();
+            updateUnsavedBanner();
+            renderTracking();
+            showToast('Edits discarded');
+        };
+
+        function statusBadgeHTML(rec, isDirty, isoDate) {
+            if (isDirty) {
+                return `<button onclick="saveRow('${isoDate}')"
+                    class="pulse-save px-3.5 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide bg-blue-600 hover:bg-blue-500 text-white active:scale-95 transition">
+                    SAVE
+                </button>`;
+            }
+            if (rec.status === 'Logged') {
+                return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">Logged</span>`;
+            }
+            if (rec.status === 'Partial') {
+                return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">Partial</span>`;
+            }
+            return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300/60 dark:border-slate-700">Blank</span>`;
+        }
+
+        function ynButtonHTML(isoDate, field, val, isMobile) {
+            const pad = isMobile ? 'flex-1 py-2 text-xs' : 'px-3 py-1.5 text-xs';
+            const yCls = val === true
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
+            const nCls = val === false
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
+            return `
+                <div class="${isMobile ? 'flex w-full' : 'inline-flex'} rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/80">
+                    <button onclick="setMetric('${isoDate}', '${field}', true)" class="${pad} font-extrabold transition active:scale-95 ${yCls}">Y</button>
+                    <button onclick="setMetric('${isoDate}', '${field}', false)" class="${pad} font-extrabold transition active:scale-95 border-l border-slate-200 dark:border-slate-700/80 ${nCls}">N</button>
+                </div>
+            `;
+        }
+
+        function alcoholButtonHTML(isoDate, val, isMobile) {
+            const pad = isMobile ? 'flex-1 py-2 text-xs' : 'px-2.5 py-1.5 text-xs';
+            const opt0 = val === '0'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
+            const opt1 = val === '1'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
+            const optPlus = val === '1+'
+                ? 'bg-rose-500 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700';
+            return `
+                <div class="${isMobile ? 'flex w-full' : 'inline-flex'} rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700/80">
+                    <button onclick="setMetric('${isoDate}', 'alcohol', '0')" class="${pad} font-extrabold transition active:scale-95 ${opt0}">0</button>
+                    <button onclick="setMetric('${isoDate}', 'alcohol', '1')" class="${pad} font-extrabold transition active:scale-95 border-l border-slate-200 dark:border-slate-700/80 ${opt1}">1</button>
+                    <button onclick="setMetric('${isoDate}', 'alcohol', '1+')" class="${pad} font-extrabold transition active:scale-95 border-l border-slate-200 dark:border-slate-700/80 ${optPlus}">1+</button>
+                </div>
+            `;
+        }
+
+        function renderTracking() {
+            const currentMondayISO = formatISODate(getMondayOfWeek(new Date()));
+            const viewingMondayISO = formatISODate(trackingWeekMonday);
+            document.getElementById('tracking-week-label').textContent = getWeekRangeLabel(trackingWeekMonday);
+            document.getElementById('btn-jump-current-week').classList.toggle('hidden', currentMondayISO === viewingMondayISO);
+
+            const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const shortDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+            const stripEl = document.getElementById('tracking-week-strip');
+            const mobileCardsEl = document.getElementById('tracking-cards-mobile');
+            const tbodyEl = document.getElementById('tracking-table-body');
+
+            let stripHTML = '';
+            let cardsHTML = '';
+            let rowsHTML = '';
+
+            for (let i = 0; i < 7; i++) {
+                const d = addDays(trackingWeekMonday, i);
+                const isoDate = formatISODate(d);
+                const shortDate = formatShortDate(d);
+                const key = getDocId(isoDate, currentUser);
+                const rec = getEffectiveRecord(isoDate, currentUser);
+                const isDirty = unsavedKeys.has(key);
+                const todayFlag = isTodayISO(isoDate);
+
+                // Mini strip cell
+                let badges = '';
+                if (rec.activity === true) badges += `<span class="w-4 h-4 rounded bg-blue-500 text-white text-[9px] font-extrabold inline-flex items-center justify-center">X</span>`;
+                if (rec.healthy === true) badges += `<span class="w-4 h-4 rounded bg-emerald-500 text-white text-[9px] font-extrabold inline-flex items-center justify-center">E</span>`;
+                if (rec.alcohol === '1') badges += `<span class="w-4 h-4 rounded bg-amber-500 text-white text-[9px] font-extrabold inline-flex items-center justify-center">A</span>`;
+                if (rec.alcohol === '1+') badges += `<span class="w-4 h-4 rounded bg-rose-500 text-white text-[9px] font-extrabold inline-flex items-center justify-center">A+</span>`;
+
+                stripHTML += `
+                    <div class="rounded-xl p-1.5 text-center border ${todayFlag ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60'}">
+                        <div class="text-[10px] font-bold uppercase ${todayFlag ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}">${shortDays[i]}</div>
+                        <div class="text-xs font-extrabold mt-0.5 ${todayFlag ? 'text-blue-600 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'}">${d.getDate()}</div>
+                        <div class="mt-1.5 min-h-[16px] flex items-center justify-center gap-0.5 flex-wrap">${badges}</div>
+                    </div>
+                `;
+
+                // Mobile Card
+                cardsHTML += `
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border ${todayFlag ? 'border-blue-500/60 ring-1 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800'} p-3.5 shadow-sm">
+                        <div class="flex items-center justify-between mb-3 pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-extrabold text-slate-900 dark:text-white">${dayNames[i]}</span>
+                                <span class="text-xs font-medium text-slate-400 dark:text-slate-500">${shortDate}</span>
+                                ${todayFlag ? '<span class="px-1.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-blue-500/15 text-blue-600 dark:text-blue-400">Today</span>' : ''}
+                            </div>
+                            <div>${statusBadgeHTML(rec, isDirty, isoDate)}</div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-center text-slate-400 dark:text-slate-500">Activity</div>
+                                ${ynButtonHTML(isoDate, 'activity', rec.activity, true)}
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-center text-slate-400 dark:text-slate-500">Eating</div>
+                                ${ynButtonHTML(isoDate, 'healthy', rec.healthy, true)}
+                            </div>
+                            <div class="space-y-1.5">
+                                <div class="text-[10px] font-bold uppercase tracking-wider text-center text-slate-400 dark:text-slate-500">Alcohol</div>
+                                ${alcoholButtonHTML(isoDate, rec.alcohol, true)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Desktop Row
+                rowsHTML += `
+                    <tr class="${todayFlag ? 'bg-blue-500/[0.04] dark:bg-blue-500/[0.06]' : ''} hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition">
+                        <td class="py-3.5 pl-5 pr-3">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-slate-900 dark:text-white">${dayNames[i]}</span>
+                                ${todayFlag ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-500/15 text-blue-600 dark:text-blue-400">Today</span>' : ''}
+                            </div>
+                            <div class="text-xs text-slate-400 dark:text-slate-500 font-medium">${shortDate}</div>
+                        </td>
+                        <td class="py-3.5 px-3 text-center">${ynButtonHTML(isoDate, 'activity', rec.activity, false)}</td>
+                        <td class="py-3.5 px-3 text-center">${ynButtonHTML(isoDate, 'healthy', rec.healthy, false)}</td>
+                        <td class="py-3.5 px-3 text-center">${alcoholButtonHTML(isoDate, rec.alcohol, false)}</td>
+                        <td class="py-3.5 pl-3 pr-5 text-center">${statusBadgeHTML(rec, isDirty, isoDate)}</td>
+                    </tr>
+                `;
+            }
+
+            stripEl.innerHTML = stripHTML;
+            mobileCardsEl.innerHTML = cardsHTML;
+            tbodyEl.innerHTML = rowsHTML;
+        }
+
+        // ==================== TOTALS VIEW LOGIC ====================
+        function renderTotals() {
+            document.getElementById('totals-user-label').textContent = currentUser;
+
+            // Dynamic weeks from 10/26/26 through current week
+            const startDynamicMonday = new Date(2026, 9, 26); // Oct 26, 2026
+            const currentMonday = getMondayOfWeek(new Date());
+
+            // Also include any future/later week if records exist beyond currentMonday
+            let maxMonday = currentMonday;
+            Object.values(checklistDB).forEach(r => {
+                if (r.name === currentUser && r.isoDate) {
+                    const m = getMondayOfWeek(parseISODate(r.isoDate));
+                    if (m > maxMonday) maxMonday = m;
+                }
+            });
+
+            const dynamicWeeks = [];
+            let cursor = new Date(startDynamicMonday);
+            while (cursor <= maxMonday) {
+                let act = 0, healthy = 0, alc = 0, loggedDays = 0;
+                for (let i = 0; i < 7; i++) {
+                    const iso = formatISODate(addDays(cursor, i));
+                    const rec = checklistDB[getDocId(iso, currentUser)];
+                    if (rec && (rec.status === 'Logged' || rec.status === 'Partial')) {
+                        loggedDays++;
+                        if (rec.activity === true) act++;
+                        if (rec.healthy === true) healthy++;
+                        if (rec.alcohol === '1' || rec.alcohol === '1+') alc++;
+                    }
+                }
+                dynamicWeeks.push({
+                    week: getWeekRangeLabel(cursor),
+                    activity: act,
+                    healthy,
+                    alcohol: alc,
+                    daysCounted: loggedDays,
+                    isCurrent: formatISODate(cursor) === formatISODate(currentMonday),
+                    isLive: true
+                });
+                cursor = addDays(cursor, 7);
+            }
+
+            const historicalUserWeeks = HISTORICAL_WEEKLY_TOTALS
+                .filter(w => w.name === currentUser)
+                .map(w => ({ ...w, daysCounted: 7, isCurrent: false, isLive: false }));
+
+            // Most recent first
+            const combined = [...dynamicWeeks.reverse(), ...historicalUserWeeks.reverse()];
+
+            let totalAct = 0, totalHealthy = 0, totalAlc = 0, totalDays = 0;
+            let rowsHTML = '';
+
+            combined.forEach(w => {
+                totalAct += w.activity;
+                totalHealthy += w.healthy;
+                totalAlc += w.alcohol;
+                totalDays += w.daysCounted;
+
+                rowsHTML += `
+                    <tr class="${w.isCurrent ? 'bg-blue-500/[0.06] dark:bg-blue-500/[0.08]' : ''} hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition">
+                        <td class="py-3.5 pl-4 sm:pl-5 pr-2 font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            ${w.week}
+                            ${w.isCurrent ? '<span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase bg-blue-500/15 text-blue-600 dark:text-blue-400">Now</span>' : ''}
+                            ${w.isLive && !w.isCurrent && w.daysCounted < 7 ? `<span class="block text-[10px] font-medium text-slate-400">${w.daysCounted}/7 days logged</span>` : ''}
+                        </td>
+                        <td class="py-3.5 px-2 text-center font-bold text-blue-600 dark:text-blue-400">${w.activity} <span class="text-slate-400 dark:text-slate-500 font-normal">/ 7</span></td>
+                        <td class="py-3.5 px-2 text-center font-bold text-emerald-600 dark:text-emerald-400">${w.healthy} <span class="text-slate-400 dark:text-slate-500 font-normal">/ 7</span></td>
+                        <td class="py-3.5 pl-2 pr-4 sm:pr-5 text-center font-bold text-rose-600 dark:text-rose-400">${w.alcohol} <span class="text-slate-400 dark:text-slate-500 font-normal">/ 7</span></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('totals-body').innerHTML = rowsHTML;
+
+            const denom = totalDays || 1;
+            const avgAct = ((totalAct / denom) * 7).toFixed(1);
+            const avgHealthy = ((totalHealthy / denom) * 7).toFixed(1);
+            const avgAlc = ((totalAlc / denom) * 7).toFixed(1);
+
+            document.getElementById('totals-days-note').textContent = `${totalDays} logged days`;
+            document.getElementById('totals-averages').innerHTML = `
+                <div class="rounded-xl p-3 bg-blue-500/10 border border-blue-500/20 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wide text-blue-600 dark:text-blue-400">Activity</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">${avgAct}<span class="text-xs font-semibold text-slate-400"> /7</span></div>
+                </div>
+                <div class="rounded-xl p-3 bg-emerald-500/10 border border-emerald-500/20 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Eating</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">${avgHealthy}<span class="text-xs font-semibold text-slate-400"> /7</span></div>
+                </div>
+                <div class="rounded-xl p-3 bg-rose-500/10 border border-rose-500/20 text-center">
+                    <div class="text-[11px] font-bold uppercase tracking-wide text-rose-600 dark:text-rose-400">Alcohol</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mt-0.5">${avgAlc}<span class="text-xs font-semibold text-slate-400"> /7</span></div>
+                </div>
+            `;
+        }
+
+        // ==================== CALENDAR VIEW LOGIC ====================
+        window.toggleCalendarMetric = function(metric) {
+            calMetrics[metric] = !calMetrics[metric];
+            const idMap = { 'Activity': 'filter-Activity', 'Healthy Eating': 'filter-Healthy', 'Alcohol': 'filter-Alcohol' };
+            const styleMap = {
+                'Activity': 'bg-blue-500/15 border-blue-500/40 text-blue-600 dark:text-blue-400',
+                'Healthy Eating': 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400',
+                'Alcohol': 'bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400'
+            };
+            const btn = document.getElementById(idMap[metric]);
+            btn.className = `px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+                calMetrics[metric]
+                    ? styleMap[metric]
+                    : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500'
+            }`;
+            renderCalendar();
+        };
+
+        window.setCalendarMode = function(mode) {
+            calendarMode = mode;
+            const mBtn = document.getElementById('cal-mode-month');
+            const wBtn = document.getElementById('cal-mode-week');
+            mBtn.className = mode === 'month'
+                ? 'px-3 py-1 rounded-full text-xs font-bold transition bg-blue-600 text-white'
+                : 'px-3 py-1 rounded-full text-xs font-bold transition text-slate-500 dark:text-slate-400';
+            wBtn.className = mode === 'week'
+                ? 'px-3 py-1 rounded-full text-xs font-bold transition bg-blue-600 text-white'
+                : 'px-3 py-1 rounded-full text-xs font-bold transition text-slate-500 dark:text-slate-400';
+            renderCalendar();
+        };
+
+        window.changeCalendarPeriod = function(delta) {
+            if (calendarMode === 'month') {
+                calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + delta, 1);
+            } else {
+                calendarCursor = addDays(calendarCursor, delta * 7);
+            }
+            renderCalendar();
+        };
+
+        window.jumpCalendarToday = function() {
+            calendarCursor = new Date();
+            renderCalendar();
+        };
+
+        function calendarBadgesHTML(rec) {
+            if (!rec) return '';
+            let html = '';
+            if (calMetrics['Activity'] && rec.activity === true) {
+                html += `<span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-blue-500 text-white text-[10px] sm:text-xs font-extrabold inline-flex items-center justify-center shadow-sm">X</span>`;
+            }
+            if (calMetrics['Healthy Eating'] && rec.healthy === true) {
+                html += `<span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-emerald-500 text-white text-[10px] sm:text-xs font-extrabold inline-flex items-center justify-center shadow-sm">E</span>`;
+            }
+            if (calMetrics['Alcohol'] && rec.alcohol === '1') {
+                html += `<span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-amber-500 text-white text-[10px] sm:text-xs font-extrabold inline-flex items-center justify-center shadow-sm">A</span>`;
+            }
+            if (calMetrics['Alcohol'] && rec.alcohol === '1+') {
+                html += `<span class="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-rose-500 text-white text-[10px] sm:text-xs font-extrabold inline-flex items-center justify-center shadow-sm">A+</span>`;
+            }
+            return html;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid-body');
+            const title = document.getElementById('calendar-period-title');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            let html = '';
+
+            if (calendarMode === 'week') {
+                const mon = getMondayOfWeek(calendarCursor);
+                title.textContent = getWeekRangeLabel(mon);
+                for (let i = 0; i < 7; i++) {
+                    const d = addDays(mon, i);
+                    const iso = formatISODate(d);
+                    const rec = checklistDB[getDocId(iso, currentUser)];
+                    const todayFlag = isTodayISO(iso);
+                    html += `
+                        <div class="rounded-xl p-2 min-h-[88px] sm:min-h-[108px] border flex flex-col ${todayFlag ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60'}">
+                            <div class="text-xs font-bold text-center ${todayFlag ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}">${d.getMonth() + 1}/${d.getDate()}</div>
+                            <div class="mt-2 flex flex-wrap items-center justify-center gap-1">${calendarBadgesHTML(rec)}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                const year = calendarCursor.getFullYear();
+                const month = calendarCursor.getMonth();
+                title.textContent = `${monthNames[month]} ${year}`;
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const leadingBlanks = firstDay === 0 ? 6 : firstDay - 1;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let b = 0; b < leadingBlanks; b++) {
+                    html += `<div class="min-h-[68px] sm:min-h-[86px]"></div>`;
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const d = new Date(year, month, day);
+                    const iso = formatISODate(d);
+                    const rec = checklistDB[getDocId(iso, currentUser)];
+                    const todayFlag = isTodayISO(iso);
+                    html += `
+                        <div class="rounded-xl p-1.5 sm:p-2 min-h-[68px] sm:min-h-[86px] border flex flex-col ${todayFlag ? 'border-blue-500 bg-blue-500/10' : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60'}">
+                            <div class="text-[11px] sm:text-xs font-bold text-right ${todayFlag ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}">${day}</div>
+                            <div class="mt-1.5 flex flex-wrap items-center justify-center gap-0.5 sm:gap-1">${calendarBadgesHTML(rec)}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // ==================== CSV EXPORT ====================
+        window.exportCSV = function() {
+            const rows = Object.values(checklistDB).sort((a, b) => {
+                if (a.isoDate !== b.isoDate) return a.isoDate.localeCompare(b.isoDate);
+                return a.name.localeCompare(b.name);
+            });
+
+            const header = ['Date', 'Name', 'Activity', 'Healthy Eating', 'Alcohol', 'Status'];
+            const csvLines = [header.join(',')];
+
+            rows.forEach(r => {
+                const act = r.activity === null ? '' : (r.activity ? 'TRUE' : 'FALSE');
+                const healthy = r.healthy === null ? '' : (r.healthy ? 'TRUE' : 'FALSE');
+                const alc = r.alcohol === null ? '' : r.alcohol;
+                csvLines.push([r.date, r.name, act, healthy, alc, r.status || 'Blank'].join(','));
+            });
+
+            const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ActivityBoard_Checklist_${formatISODate(new Date())}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Exported ${rows.length} rows to CSV`);
+        };
+
+        function refreshAllViews() {
+            renderTracking();
+            renderTotals();
+            renderCalendar();
+        }
+
+        // ==================== STARTUP ====================
+        initPreferences();
+        initFirebase();
+    </script>
+</body>
+</html>
