@@ -8,7 +8,7 @@
  * ============================================================================
  */
 
-const CACHE_NAME = 'activity-board-v1.1';
+const CACHE_NAME = 'activity-board-v1.2';
 const ASSETS = [
   './',
   './index.html',
