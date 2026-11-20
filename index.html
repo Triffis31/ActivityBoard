@@ -8,6 +8,9 @@
     <meta name="apple-mobile-web-app-title" content="Activity Board">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#020617">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" type="image/png" href="./icon.png">
+    <link rel="apple-touch-icon" href="./icon.png">
     <title>Activity Board</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,7 +79,7 @@
                 </div>
             </div>
 
-            <!-- Right Controls: Profile Switcher + CSV + Theme -->
+            <!-- Right Controls: Profile Switcher + Theme -->
             <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <div id="user-toggle" class="grid grid-cols-2 bg-slate-200/80 dark:bg-slate-900 p-0.5 rounded-full border border-slate-300/70 dark:border-slate-800">
                     <button data-user="Jon" onclick="setUser('Jon')"
@@ -88,15 +91,6 @@
                         Val
                     </button>
                 </div>
-
-                <button id="btn-export-csv" onclick="exportCSV()"
-                    class="inline-flex items-center justify-center gap-1.5 p-2 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition shadow-sm"
-                    title="Export Checklist to CSV for Google Sheets" aria-label="Export CSV">
-                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    <span class="hidden sm:inline">Export CSV</span>
-                </button>
 
                 <button id="btn-theme-toggle" onclick="toggleTheme()"
                     class="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition shadow-sm"
@@ -1222,35 +1216,6 @@
             grid.innerHTML = html;
         }
 
-        // ==================== CSV EXPORT ====================
-        window.exportCSV = function() {
-            const rows = Object.values(checklistDB).sort((a, b) => {
-                if (a.isoDate !== b.isoDate) return a.isoDate.localeCompare(b.isoDate);
-                return a.name.localeCompare(b.name);
-            });
-
-            const header = ['Date', 'Name', 'Activity', 'Healthy Eating', 'Alcohol', 'Status'];
-            const csvLines = [header.join(',')];
-
-            rows.forEach(r => {
-                const act = r.activity === null ? '' : (r.activity ? 'TRUE' : 'FALSE');
-                const healthy = r.healthy === null ? '' : (r.healthy ? 'TRUE' : 'FALSE');
-                const alc = r.alcohol === null ? '' : r.alcohol;
-                csvLines.push([r.date, r.name, act, healthy, alc, r.status || 'Blank'].join(','));
-            });
-
-            const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ActivityBoard_Checklist_${formatISODate(new Date())}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast(`Exported ${rows.length} rows to CSV`);
-        };
-
         function refreshAllViews() {
             renderTracking();
             renderTotals();
@@ -1260,6 +1225,13 @@
         // ==================== STARTUP ====================
         initPreferences();
         initFirebase();
+
+        // Register Service Worker for full-screen PWA installability
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
     </script>
 </body>
 </html>

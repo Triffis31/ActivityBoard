@@ -2,6 +2,8 @@
  * ============================================================================
  * Activity Board - Service Worker Version History
  * ============================================================================
+ * v1.2 (2026-11-20) - Switched icon to icon.png for Android PWA installability
+ *                     and removed CSV export button from header.
  * v1.1 (2026-11-20) - Updated app icon to blue circle with white runner.
  * v1.0 (2026-11-20) - Initial PWA release with Firestore live sync, mobile
  *                     card layout, bottom nav, and offline asset caching.
@@ -12,7 +14,7 @@ const CACHE_NAME = 'activity-board-v1.2';
 const ASSETS = [
   './',
   './index.html',
-  './icon.svg',
+  './icon.png',
   './manifest.json'
 ];
 
